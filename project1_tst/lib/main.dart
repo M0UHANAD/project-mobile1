@@ -1,47 +1,16 @@
 import 'package:flutter/material.dart';
-import 'points_summary_page.dart';  
 
 void main() {
-  runApp(MyApp());
-}
+  runApp(MaterialApp(
+    theme: ThemeData.light(),
+    darkTheme: ThemeData.dark(),
+    home: PointCounter(
 
-class MyApp extends StatefulWidget {
-  @override
-  _MyAppState createState() => _MyAppState();
-}
-
-class _MyAppState extends State<MyApp> {
-  // Start with light theme
-  ThemeMode _themeMode = ThemeMode.light;
-
-  // Toggle between light and dark themes
-  void toggleTheme() {
-    setState(() {
-      _themeMode = _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Points Counter',
-      theme: ThemeData.light(), // Light theme configuration
-      darkTheme: ThemeData.dark(), // Dark theme configuration
-      themeMode: _themeMode, // Set the current theme mode (light or dark)
-      home: PointCounter(
-        toggleTheme: toggleTheme, // Pass the toggleTheme callback
-        themeMode: _themeMode, // Pass the current theme mode
-      ),
-    );
-  }
+    ),
+  ));
 }
 
 class PointCounter extends StatefulWidget {
-  final Function toggleTheme;  // Add toggleTheme as a parameter
-  final ThemeMode themeMode;   // Add themeMode as a parameter
-
-  PointCounter({required this.toggleTheme, required this.themeMode});
-
   @override
   State<PointCounter> createState() => _PointCounterState();
 }
@@ -51,7 +20,9 @@ class _PointCounterState extends State<PointCounter> {
   int teamBPoints = 0;
   int selectedPoints = 1;
   bool bonusChecked = false;
+  bool isDarkTheme = false;
 
+  
   final Map<String, int> teamACounts = {'1 Point': 0, '2 Points': 0, '3 Points': 0};
   final Map<String, int> teamBCounts = {'1 Point': 0, '2 Points': 0, '3 Points': 0};
 
@@ -65,25 +36,22 @@ class _PointCounterState extends State<PointCounter> {
         actions: [
           IconButton(
             icon: Icon(
-              // Change the icon based on the current theme mode passed from the parent widget
-              widget.themeMode == ThemeMode.dark
-                  ? Icons.nightlight_round
-                  : Icons.wb_sunny,
+              isDarkTheme ? Icons.nightlight_round : Icons.wb_sunny,
               color: Colors.white,
             ),
             onPressed: () {
-              widget.toggleTheme();  // Use the toggleTheme callback here to switch the theme
+              setState(() {
+                isDarkTheme = !isDarkTheme;
+              });
             },
           ),
           IconButton(
-            icon: const Icon(Icons.analytics),
+            icon: Icon(Icons.analytics),
             onPressed: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (context) => PointsSummaryPage(
-                    teamAPoints: teamAPoints,
-                    teamBPoints: teamBPoints,
                     teamACounts: teamACounts,
                     teamBCounts: teamBCounts,
                   ),
@@ -211,5 +179,38 @@ class _PointCounterState extends State<PointCounter> {
     } else if (points == 3) {
       counts['3 Points'] = counts['3 Points']! + 1;
     }
+  }
+}
+
+class PointsSummaryPage extends StatelessWidget {
+  final Map<String, int> teamACounts;
+  final Map<String, int> teamBCounts;
+
+  PointsSummaryPage({required this.teamACounts, required this.teamBCounts});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.orange,
+        foregroundColor: Colors.white,
+        title: const Text('Points Summary'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Team A Points:', style: TextStyle(fontSize: 22)),
+            for (var entry in teamACounts.entries)
+              Text('${entry.key}: ${entry.value}', style: const TextStyle(fontSize: 18)),
+            const SizedBox(height: 20),
+            const Text('Team B Points:', style: TextStyle(fontSize: 22)),
+            for (var entry in teamBCounts.entries)
+              Text('${entry.key}: ${entry.value}', style: const TextStyle(fontSize: 18)),
+          ],
+        ),
+      ),
+    );
   }
 }
