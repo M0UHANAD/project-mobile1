@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'teamnamepage.dart';  // Import the team name page
 import 'points_summary_page.dart';  // Import the new summary page file
 
 void main() {
@@ -28,19 +29,25 @@ class _MyAppState extends State<MyApp> {
       theme: ThemeData.light(), // Light theme configuration
       darkTheme: ThemeData.dark(), // Dark theme configuration
       themeMode: _themeMode, // Set the current theme mode (light or dark)
-      home: PointCounter(
-        toggleTheme: toggleTheme, // Pass the toggleTheme callback
-        themeMode: _themeMode, // Pass the current theme mode
+      home: TeamNamePage(  // Pass themeMode and toggleTheme here
+        themeMode: _themeMode,
+        toggleTheme: toggleTheme,
       ),
     );
   }
 }
-
 class PointCounter extends StatefulWidget {
-  final Function toggleTheme;  // Add toggleTheme as a parameter
+  final String teamAName;      // Add teamAName as a parameter
+  final String teamBName;      // Add teamBName as a parameter
   final ThemeMode themeMode;   // Add themeMode as a parameter
+  final Function toggleTheme;  // Add toggleTheme as a parameter
 
-  PointCounter({required this.toggleTheme, required this.themeMode});
+  PointCounter({
+    required this.teamAName,
+    required this.teamBName,
+    required this.themeMode,   // Pass the themeMode here
+    required this.toggleTheme, // Pass the toggleTheme function here
+  });
 
   @override
   State<PointCounter> createState() => _PointCounterState();
@@ -61,7 +68,21 @@ class _PointCounterState extends State<PointCounter> {
       appBar: AppBar(
         backgroundColor: Colors.orange,
         foregroundColor: Colors.white,
-        title: const Text('Points Counter'),
+        title: const Text('Basketball Points Counter', 
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+            letterSpacing: 2,
+            shadows: [
+              Shadow(
+                offset: Offset(2, 2),
+                blurRadius: 3,
+                color: Color(0x66000000),
+              ),
+            ],
+          ),
+        ),
         actions: [
           IconButton(
             icon: Icon(
@@ -72,7 +93,7 @@ class _PointCounterState extends State<PointCounter> {
               color: Colors.white,
             ),
             onPressed: () {
-              widget.toggleTheme();  // Use the toggleTheme callback here to switch the theme
+              widget.toggleTheme();  // Toggle the theme mode when clicked
             },
           ),
           IconButton(
@@ -99,16 +120,16 @@ class _PointCounterState extends State<PointCounter> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              buildTeamColumn('Team A', teamAPoints, teamACounts),
+              buildTeamColumn(widget.teamAName, teamAPoints, teamACounts),
               const SizedBox(
-                height: 460,
+                height: 400,
                 child: VerticalDivider(
                   color: Colors.grey,
                   thickness: 1,
                   indent: 8,
                 ),
               ),
-              buildTeamColumn('Team B', teamBPoints, teamBCounts),
+              buildTeamColumn(widget.teamBName, teamBPoints, teamBCounts),
             ],
           ),
           const SizedBox(height: 20),
@@ -141,7 +162,7 @@ class _PointCounterState extends State<PointCounter> {
               });
             },
           ),
-          const SizedBox(height: 40),
+          const SizedBox(height: 20),
           ElevatedButton(
             onPressed: () {
               setState(() {
@@ -154,7 +175,7 @@ class _PointCounterState extends State<PointCounter> {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.orange,
               foregroundColor: Colors.white,
-              minimumSize: const Size(150, 60),
+              minimumSize: const Size(100, 40),
             ),
             child: const Text(
               'Reset',
@@ -180,7 +201,7 @@ class _PointCounterState extends State<PointCounter> {
         ElevatedButton(
           onPressed: () {
             setState(() {
-              if (team == 'Team A') {
+              if (team == widget.teamAName) {
                 teamAPoints += selectedPoints + (bonusChecked ? 5 : 0);
                 updateCounts(teamACounts, selectedPoints);
               } else {

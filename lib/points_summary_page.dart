@@ -1,4 +1,3 @@
-// points_summary_page.dart
 import 'package:flutter/material.dart';
 
 class PointsSummaryPage extends StatelessWidget {
@@ -34,30 +33,48 @@ class PointsSummaryPage extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.orange,
         foregroundColor: Colors.white,
-        title: const Text('Points Summary'),
+        title: const Text(
+          'Points Summary',
+          style: TextStyle(
+            fontSize: 30, // Increased font size
+            fontWeight: FontWeight.bold, // Bold text
+            color: Colors.white, // White color for better contrast
+            letterSpacing: 2, // Letter spacing for a cleaner look
+            shadows: [
+              Shadow(
+                offset: Offset(2, 2), // Shadow offset
+                blurRadius: 3, // Shadow blur radius
+                color: Color(0x66000000), // Semi-transparent black shadow
+              ),
+            ],
+          ),
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Team A Points:', style: TextStyle(fontSize: 22)),
-            for (var entry in teamACounts.entries)
-              Text('${entry.key}: ${entry.value}', style: const TextStyle(fontSize: 18)),
-            const SizedBox(height: 20),
-            const Text('Team B Points:', style: TextStyle(fontSize: 22)),
-            for (var entry in teamBCounts.entries)
-              Text('${entry.key}: ${entry.value}', style: const TextStyle(fontSize: 18)),
-            const SizedBox(height: 40),
-            Text(
-              winner,
-              style: TextStyle(
-                fontSize: 30,
-                fontWeight: FontWeight.bold,
-                color: winnerColor,
+        child: Center( // This ensures everything is centered on the screen
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center, // Centers the content vertically
+            crossAxisAlignment: CrossAxisAlignment.center, // Centers the content horizontally
+            children: [
+              const Text('Team A Points:', style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold)),
+              for (var entry in teamACounts.entries)
+                Text('${entry.key}: ${entry.value}', style: const TextStyle(fontSize: 30)),
+              const SizedBox(height: 20),
+              const Text('Team B Points:', style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold)),
+              for (var entry in teamBCounts.entries)
+                Text('${entry.key}: ${entry.value}', style: const TextStyle(fontSize: 30)),
+              const SizedBox(height: 40),
+              Text(
+                winner,
+                style: TextStyle(
+                  fontSize: 48,  // Increased font size for the winner text
+                  fontWeight: FontWeight.bold,
+                  color: winnerColor,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
