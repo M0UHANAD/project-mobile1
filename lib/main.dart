@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
-import 'teamnamepage.dart';  // Import the team name page
-import 'points_summary_page.dart';  // Import the new summary page file
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:intl/intl.dart';  // Import intl package
+import 'teamnamepage.dart';
+import 'login.dart';
+import 'points_summary_page.dart';
 
 void main() {
   runApp(MyApp());
@@ -12,13 +16,12 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  // Start with light theme
   ThemeMode _themeMode = ThemeMode.light;
 
-  // Toggle between light and dark themes
   void toggleTheme() {
     setState(() {
-      _themeMode = _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
+      _themeMode =
+          _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
     });
   }
 
@@ -26,27 +29,32 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Points Counter',
-      theme: ThemeData.light(), // Light theme configuration
-      darkTheme: ThemeData.dark(), // Dark theme configuration
-      themeMode: _themeMode, // Set the current theme mode (light or dark)
-      home: TeamNamePage(  // Pass themeMode and toggleTheme here
+      theme: ThemeData.light(),
+      darkTheme: ThemeData.dark(),
+      themeMode: _themeMode,
+      home: LoginPage(
         themeMode: _themeMode,
         toggleTheme: toggleTheme,
       ),
     );
   }
 }
+
 class PointCounter extends StatefulWidget {
-  final String teamAName;      // Add teamAName as a parameter
-  final String teamBName;      // Add teamBName as a parameter
-  final ThemeMode themeMode;   // Add themeMode as a parameter
-  final Function toggleTheme;  // Add toggleTheme as a parameter
+  final String teamAName;
+  final String teamBName;
+  final String matchDate;
+  final String refereeName; // Add refereeName to the constructor
+  final ThemeMode themeMode;
+  final Function toggleTheme;
 
   PointCounter({
     required this.teamAName,
     required this.teamBName,
-    required this.themeMode,   // Pass the themeMode here
-    required this.toggleTheme, // Pass the toggleTheme function here
+    required this.matchDate,
+    required this.refereeName, // Accept referee name in constructor
+    required this.themeMode,
+    required this.toggleTheme,
   });
 
   @override
@@ -56,11 +64,77 @@ class PointCounter extends StatefulWidget {
 class _PointCounterState extends State<PointCounter> {
   int teamAPoints = 0;
   int teamBPoints = 0;
-  int selectedPoints = 1;
-  bool bonusChecked = false;
 
-  final Map<String, int> teamACounts = {'1 Point': 0, '2 Points': 0, '3 Points': 0};
-  final Map<String, int> teamBCounts = {'1 Point': 0, '2 Points': 0, '3 Points': 0};
+  // Method to format match date before sending to server
+  String formatDateForAPI(String matchDate) {
+    try {
+      // Convert the match date to DateTime object if it's not already
+      DateTime date = DateTime.parse(matchDate);
+      // Format the DateTime object to MySQL-friendly format (YYYY-MM-DD HH:mm:ss)
+      return DateFormat('yyyy-MM-dd HH:mm:ss').format(date);
+    } catch (e) {
+      // If the date can't be parsed, return an empty string or show error
+      throw Exception('Invalid date format');
+    }
+  }
+
+  Future<void> saveMatchRecord() async {
+    try {
+      final url = Uri.parse('http://osmanrmd.atwebpages.com/main.php');
+
+      // Ensure matchDate is valid and format it
+      if (widget.matchDate.isEmpty) {
+        throw Exception('Match date is missing');
+      }
+
+      String formattedDate = formatDateForAPI(widget.matchDate); // Format the date
+
+      // Prepare the POST request body
+      final body = jsonEncode({
+        'action': 'save_match',
+        'date': formattedDate, // Send formatted date
+        'team1': widget.teamAName, // Team A name
+        'team2': widget.teamBName, // Team B name
+        'score_team1': teamAPoints, // Team A points
+        'score_team2': teamBPoints, // Team B points
+        'referee': widget.refereeName, // Add referee name to the request
+      });
+
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: body,
+      );
+
+      // Process the server's response
+      if (response.statusCode == 200) {
+        final responseBody = jsonDecode(response.body);
+        final status = responseBody['status'] ?? 'error';
+        final message = responseBody['message'] ?? 'An unexpected error occurred';
+
+        if (status == 'success') {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(message),
+            backgroundColor: Colors.green,
+          ));
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(message),
+            backgroundColor: Colors.red,
+          ));
+        }
+      } else {
+        throw Exception(
+            'Server responded with status code ${response.statusCode}');
+      }
+    } catch (e) {
+      // Catch any exceptions and show an error message
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Error: ${e.toString()}'),
+        backgroundColor: Colors.red,
+      ));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -68,12 +142,13 @@ class _PointCounterState extends State<PointCounter> {
       appBar: AppBar(
         backgroundColor: Colors.orange,
         foregroundColor: Colors.white,
-        title: const Text('Basketball Points Counter', 
+        title: Text(
+          'Date: ${widget.matchDate} ', // Display referee name in the app bar
           style: TextStyle(
-            fontSize: 13,
+            fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: Colors.white,
             letterSpacing: 2,
+            color: Colors.white,
             shadows: [
               Shadow(
                 offset: Offset(2, 2),
@@ -86,14 +161,13 @@ class _PointCounterState extends State<PointCounter> {
         actions: [
           IconButton(
             icon: Icon(
-              // Change the icon based on the current theme mode passed from the parent widget
               widget.themeMode == ThemeMode.dark
                   ? Icons.nightlight_round
                   : Icons.wb_sunny,
               color: Colors.white,
             ),
             onPressed: () {
-              widget.toggleTheme();  // Toggle the theme mode when clicked
+              widget.toggleTheme();
             },
           ),
           IconButton(
@@ -105,8 +179,8 @@ class _PointCounterState extends State<PointCounter> {
                   builder: (context) => PointsSummaryPage(
                     teamAPoints: teamAPoints,
                     teamBPoints: teamBPoints,
-                    teamACounts: teamACounts,
-                    teamBCounts: teamBCounts,
+                    teamACounts: {},
+                    teamBCounts: {},
                   ),
                 ),
               );
@@ -116,11 +190,29 @@ class _PointCounterState extends State<PointCounter> {
       ),
       body: Column(
         children: [
+          // Add the Row for the Referee Name above the Column
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'Referee: ${widget.refereeName}',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.orange,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+              ],
+            ),
+          ),
           const SizedBox(height: 20),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              buildTeamColumn(widget.teamAName, teamAPoints, teamACounts),
+              buildTeamColumn(widget.teamAName, teamAPoints),
               const SizedBox(
                 height: 400,
                 child: VerticalDivider(
@@ -129,38 +221,23 @@ class _PointCounterState extends State<PointCounter> {
                   indent: 8,
                 ),
               ),
-              buildTeamColumn(widget.teamBName, teamBPoints, teamBCounts),
+              buildTeamColumn(widget.teamBName, teamBPoints),
             ],
           ),
           const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              for (int i = 1; i <= 3; i++)
-                Row(
-                  children: [
-                    Radio<int>(
-                      value: i,
-                      groupValue: selectedPoints,
-                      onChanged: (value) {
-                        setState(() {
-                          selectedPoints = value!;
-                        });
-                      },
-                    ),
-                    Text('$i'),
-                  ],
-                ),
-            ],
-          ),
-          CheckboxListTile(
-            title: const Text('Add Bonus 5 Points'),
-            value: bonusChecked,
-            onChanged: (bool? value) {
-              setState(() {
-                bonusChecked = value!;
-              });
+          ElevatedButton(
+            onPressed: () async {
+              await saveMatchRecord();
             },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+              minimumSize: const Size(150, 50),
+            ),
+            child: const Text(
+              'Save Match Record',
+              style: TextStyle(fontSize: 18),
+            ),
           ),
           const SizedBox(height: 20),
           ElevatedButton(
@@ -168,8 +245,6 @@ class _PointCounterState extends State<PointCounter> {
               setState(() {
                 teamAPoints = 0;
                 teamBPoints = 0;
-                teamACounts.updateAll((key, value) => 0);
-                teamBCounts.updateAll((key, value) => 0);
               });
             },
             style: ElevatedButton.styleFrom(
@@ -187,7 +262,7 @@ class _PointCounterState extends State<PointCounter> {
     );
   }
 
-  Column buildTeamColumn(String team, int points, Map<String, int> counts) {
+  Column buildTeamColumn(String team, int points) {
     return Column(
       children: [
         Text(
@@ -202,11 +277,9 @@ class _PointCounterState extends State<PointCounter> {
           onPressed: () {
             setState(() {
               if (team == widget.teamAName) {
-                teamAPoints += selectedPoints + (bonusChecked ? 5 : 0);
-                updateCounts(teamACounts, selectedPoints);
+                teamAPoints += 1;
               } else {
-                teamBPoints += selectedPoints + (bonusChecked ? 5 : 0);
-                updateCounts(teamBCounts, selectedPoints);
+                teamBPoints += 1;
               }
             });
           },
@@ -215,22 +288,12 @@ class _PointCounterState extends State<PointCounter> {
             foregroundColor: Colors.white,
             minimumSize: const Size(150, 60),
           ),
-          child: Text(
-            'Add $selectedPoints point${selectedPoints > 1 ? "s" : ""}',
-            style: const TextStyle(fontSize: 20),
+          child: const Text(
+            'Add 1 Point',
+            style: TextStyle(fontSize: 20),
           ),
         ),
       ],
     );
-  }
-
-  void updateCounts(Map<String, int> counts, int points) {
-    if (points == 1) {
-      counts['1 Point'] = counts['1 Point']! + 1;
-    } else if (points == 2) {
-      counts['2 Points'] = counts['2 Points']! + 1;
-    } else if (points == 3) {
-      counts['3 Points'] = counts['3 Points']! + 1;
-    }
   }
 }
